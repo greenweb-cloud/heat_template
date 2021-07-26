@@ -1,0 +1,11 @@
+heat_template_version: 2018-08-31
+
+description: Simple template to deploy a single compute instance
+
+resources:
+  my_instance:
+    type: OS::Nova::Server
+    properties:
+      key_name: heat_key
+      image: ubuntu18.04
+      flavor: plan 1

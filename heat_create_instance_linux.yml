@@ -1,0 +1,87 @@
+heat_template_version: 2018-08-31
+
+description: Template for deploying a simple VM
+
+parameters:
+  instance_name:
+    description: Name of the instance. This parameter is used as prefix for all OpenStack resources (Cinder, Neutron, and Nova) that are created for particular Instance.
+    type: string
+
+  flavor_name:
+    description: Flavor name for VM.
+    type: string
+    constraints:
+    - custom_constraint: nova.flavor
+
+  image_name:
+    type: string
+    description: Name of the image stored in OpenStack repository.
+    constraints:
+    - custom_constraint: glance.image
+    default:
+
+  keypair_name:
+    type: string
+    description: SSH key pair.
+    constraints:
+      - custom_constraint: nova.keypair
+    default:
+
+  security_group:
+    type: string
+    description: Security group for instance.
+#    constraints:
+#    - custom_constraint: neutron.security_group
+# Dropdown menu not possible because implementation for security group constraint is brand new feature in upstream: https://review.openstack.org/#/c/332746/
+    default:
+
+  network_name:
+    type: string
+    description: Name of the network where the instance will be connected.
+    constraints:
+    - custom_constraint: neutron.network
+    default:
+
+
+  floating_ip_pool:
+    type: string
+    description: Name of the floating-IP pool from where the IP is allocated
+    default: ext-net
+
+parameter_groups:
+- label: Instance parameters
+  parameters:
+  - instance_name
+  - flavor_name
+  - image_name
+  - keypair_name
+  - security_group
+  - network_name
+  - floating_ip_pool
+  
+resources:
+  my_instance:
+    type: OS::Nova::Server
+    properties:
+      name: { get_param: instance_name }
+      image: { get_param: image_name }
+      flavor: { get_param: flavor_name }
+      key_name: { get_param: keypair_name }
+      security_groups: [{ get_param: security_group }]
+      networks:
+        - {network: { get_param: network_name }}
+      user_data_format: RAW
+
+  floating_ip:
+    type: OS::Nova::FloatingIP
+    properties:
+      pool: {get_param: floating_ip_pool}
+      
+  association:
+    type: OS::Nova::FloatingIPAssociation
+    properties:
+      floating_ip: { get_resource: floating_ip }
+      server_id: { get_resource: my_instance }
+
+
+
