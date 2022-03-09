@@ -9,7 +9,7 @@ parameters:
   key_name:
     type: string
     description: Name of a KeyPair to enable SSH access to the instance
-    default: ali
+    default: key_name
   flavor:
     type: string
     description: Instance type for WordPress server
