@@ -1,0 +1,134 @@
+heat_template_version: '2014-10-16'
+
+description: >
+  HOT template to create single Wordpress instance on OTC
+  Creates new router and private subnet, new security group
+  Downloads and installs MariaDB, PHP, Apache and Wordpress 
+
+parameters:
+  key_name:
+    type: string
+    description: Name of a KeyPair to enable SSH access to the instance
+    default: ali
+  flavor:
+    type: string
+    description: Instance type for WordPress server
+    default: 20834f18-54df-4652-a679-a8b9eaa7365c
+  image:
+    type: string
+    description: OTC Images
+    default: 13f2a597-1350-4d69-a340-f508fd72ec41
+  public_net_id:
+    type: string
+    description: ID of OTC public network
+    default: 16da6665-9150-4288-883e-9cf1368d8add
+  security_group_name:
+    type: string
+    description: ID of security group
+    default: wp_demo_sg 
+  db_name:
+    type: string
+    description: WordPress database name
+    default: wordpress
+    constraints:
+      - length: { min: 1, max: 64 }
+        description: db_name must be between 1 and 64 characters
+      - allowed_pattern: '[a-zA-Z][a-zA-Z0-9]*'
+        description: >
+          db_name must begin with a letter and contain only alphanumeric
+          characters
+  db_username:
+    type: string
+    description: The WordPress database admin account username
+    default: admin
+    hidden: true
+    constraints:
+      - length: { min: 1, max: 16 }
+        description: db_username must be between 1 and 16 characters
+      - allowed_pattern: '[a-zA-Z][a-zA-Z0-9]*'
+        description: >
+          db_username must begin with a letter and contain only alphanumeric
+          characters
+  db_password:
+    type: string
+    description: The WordPress database admin account password
+    default: admin
+    hidden: true
+    constraints:
+      - length: { min: 1, max: 41 }
+        description: db_password must be between 1 and 41 characters
+      - allowed_pattern: '[a-zA-Z0-9]*'
+        description: db_password must contain only alphanumeric characters
+  db_root_password:
+    type: string
+    description: Root password for MySQL
+    default: admin
+    hidden: true
+    constraints:
+      - length: { min: 1, max: 41 }
+        description: db_root_password must be between 1 and 41 characters
+      - allowed_pattern: '[a-zA-Z0-9]*'
+        description: db_root_password must contain only alphanumeric characters
+
+
+resources:
+  security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: {get_param: security_group_name}
+      rules:
+        - protocol: icmp
+        - protocol: tcp
+          port_range_min: 22
+          port_range_max: 22
+        - protocol: tcp
+          port_range_min: 80
+          port_range_max: 80
+        - protocol: tcp
+          port_range_min: 443
+          port_range_max: 443
+
+  wp_demo_instance:
+    type: OS::Nova::Server
+    depends_on: security_group
+    properties:
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      key_name: { get_param: key_name }
+      networks:
+        - port: {get_resource: port}
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash -x
+            cd /tmp
+            wget https://raw.githubusercontent.com/AliEbrahimpour/heat-example/main/install.sh
+            chmod +x install.sh
+            sh install.sh $db_name $db_rootpassword $db_user $db_password
+
+          params:
+            $db_rootpassword: { get_param: db_root_password }
+            $db_name: { get_param: db_name }
+            $db_user: { get_param: db_username }
+            $db_password: { get_param: db_password }
+
+  port:
+    type: OS::Neutron::Port
+    depends_on: security_group
+    properties:
+      network: { get_param: public_net_id }
+      security_groups: [ get_resource: security_group ]
+
+outputs:
+  PublicIP:
+    description: IP address in public network
+    value:
+      get_param: port
+  WebsiteURL:
+    description: URL for Wordpress wiki
+    value:
+      str_replace:
+        template: http://host/wordpress
+        params:
+          host: { get_param: port }
