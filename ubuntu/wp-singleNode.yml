@@ -9,23 +9,23 @@ parameters:
   key_name:
     type: string
     description: Name of a KeyPair to enable SSH access to the instance
-    default: ali
+    default: key_name
   flavor:
     type: string
     description: Instance type for WordPress server
-    default: 20834f18-54df-4652-a679-a8b9eaa7365c
+    default: flavor_id
   image:
     type: string
     description: OTC Images
-    default: 13f2a597-1350-4d69-a340-f508fd72ec41
+    default: image_id
   public_net_id:
     type: string
     description: ID of OTC public network
-    default: 16da6665-9150-4288-883e-9cf1368d8add
+    default: public_id
   security_group_name:
     type: string
     description: ID of security group
-    default: wp_demo_sg 
+    default: wp_demo_secgroup 
   db_name:
     type: string
     description: WordPress database name
