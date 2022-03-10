@@ -5,21 +5,21 @@ description: Stack that launches a single server
 parameters:
   public_network:
     type: string
-    default: public
+    default: public_name
   image:
     type: string
     constraints:
       - custom_constraint: glance.image
-    default: "13f2a597-1350-4d69-a340-f508fd72ec41"  
+    default: image_id 
   flavor:
     type: string
     constraints:
       - custom_constraint: nova.flavor
-    default: "dd40659a-c2d1-48f3-83a3-3e5871eb1d2d"
+    default: flavor_id
   ssh_keys:
     type: string
     description: Name of a KeyPair to enable SSH access to the instance
-    default: ali
+    default: key_name
   volume_size_db:
     type: number
     default: 5
