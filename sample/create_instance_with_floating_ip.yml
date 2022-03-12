@@ -104,4 +104,3 @@ resources:
     properties:
       floatingip_id: { get_param: floating_ip }
       port_id: { get_resource: port }
-	  
