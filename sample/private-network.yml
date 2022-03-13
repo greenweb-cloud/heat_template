@@ -1,0 +1,108 @@
+heat_template_version: 2018-08-31
+
+description: Template for deploying a simple VM
+
+parameters:
+  instance_name:
+    description: Name of the instance. This parameter is used as prefix for all OpenStack resources (Cinder, Neutron, and Nova) that are created for particular Instance.
+    type: string
+    default: ali
+
+  flavor_name:
+    description: Flavor name for VM.
+    type: string
+    constraints:
+    - custom_constraint: nova.flavor
+    default: "id"
+
+  image_name:
+    type: string
+    description: Name of the image stored in OpenStack repository.
+    constraints:
+    - custom_constraint: glance.image
+    default: "id"
+
+  keypair_name:
+    type: string
+    description: SSH key pair.
+    constraints:
+      - custom_constraint: nova.keypair
+    default: keypair_name
+
+  network_name:
+    type: string
+    description: Name of the network where the instance will be connected.
+    constraints:
+    - custom_constraint: neutron.network
+    default: "network_name"
+
+  security_group_name:
+    type: string
+    description: Security group for instance.
+    default: "security_group_name"
+
+parameter_groups:
+- label: Instance parameters
+  parameters:
+  - instance_name
+  - flavor_name
+  - image_name
+  - keypair_name
+  - network_name
+  - security_group_name
+  
+resources:
+  security:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      rules:
+        - protocol: tcp
+          remote_ip_prefix: 0.0.0.0/0
+          port_range_min: 22
+          port_range_max: 443
+
+
+  network_heat:
+    type: OS::Neutron::Net
+    properties: 
+      name: 
+        list_join: [ '-', [ { get_param: "OS::stack_name" }, 'example-network' ]]
+
+  subnet:
+    type: OS::Neutron::Subnet
+    depends_on: [ network_heat ]
+    properties:
+      name: 
+        list_join: [ '-', [ { get_param: "OS::stack_name" }, 'example-subnet' ]]
+      dns_nameservers:
+        - 8.8.8.8
+        - 8.8.4.4
+      network: { get_resource: network_heat }
+      ip_version: 4
+      cidr: 10.0.0.0/24
+      allocation_pools:
+      - {start: 10.0.0.10, end: 10.0.0.250}
+
+  my_instance:
+    type: OS::Nova::Server
+    properties:
+      name: { get_param: instance_name }
+      image: { get_param: image_name }
+      flavor: { get_param: flavor_name }
+      key_name: { get_param: keypair_name }
+      security_groups: [{ get_resource: security }]
+      networks:
+        - {network: { get_resource: network_heat }}
+      user_data_format: RAW
+outputs:
+  NetworkIP:
+    description: IP address in network
+    value:
+      get_resource: subnet
+  WebsiteURL:
+    description: URL for instance
+    value:
+      str_replace:
+        id_subnet: host
+        params:
+          host: { get_resource: subnet }
