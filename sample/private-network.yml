@@ -94,3 +94,15 @@ resources:
       networks:
         - {network: { get_resource: network_heat }}
       user_data_format: RAW
+outputs:
+  NetworkIP:
+    description: IP address in network
+    value:
+      get_resource: subnet
+  WebsiteURL:
+    description: URL for instance
+    value:
+      str_replace:
+        id_subnet: host
+        params:
+          host: { get_resource: subnet }
